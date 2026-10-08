@@ -1,43 +1,49 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🎁 Surprise!</title>
+</head>
+<body>
+  <h1>🎁 Surprise!</h1>
 
-on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
+  <p>
+    Want to share your location for the surprise?
+  </p>
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+  <button onclick="shareLocation()">
+    Share My Location 📍
+  </button>
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+  <p id="result"></p>
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  <script>
+    function shareLocation() {
+      if (!navigator.geolocation) {
+        document.getElementById("result").textContent =
+          "Location sharing isn't supported by this browser.";
+        return;
+      }
 
-jobs:
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+
+          const mapLink =
+            "https://www.google.com/maps?q=" + lat + "," + lon;
+
+          document.getElementById("result").innerHTML =
+            "Your location was shared with you. " +
+            '<a href="' + mapLink + '" target="_blank">View map</a>';
+        },
+        function() {
+          document.getElementById("result").textContent =
+            "Location permission was not granted.";
+        }
+      );
+    }
+  </script>
+</body>
+</html>
+```
