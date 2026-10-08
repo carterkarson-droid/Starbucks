@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Surprise 🎁</title>
+</head>
+<body>
+  <h1>🎁 Surprise!</h1>
+  <p>Click the button below to share your location for the surprise.</p>
+
+  <button onclick="getLocation()">Reveal Surprise</button>
+
+  <p id="result"></p>
+
+  <script>
+    function getLocation() {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          document.getElementById("result").innerHTML =
+            "Location shared! 🎉";
+        },
+        function() {
+          document.getElementById("result").innerHTML =
+            "Location permission was not granted.";
+        }
+      );
+    }
+  </script>
+</body>
+</html>
