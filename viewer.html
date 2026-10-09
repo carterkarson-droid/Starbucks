@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Private Location Viewer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f0fa;
+      margin: 0;
+      padding: 24px;
+      color: #292338;
+    }
+    main {
+      max-width: 600px;
+      margin: 30px auto;
+      background: white;
+      padding: 24px;
+      border-radius: 18px;
+      box-shadow: 0 8px 30px #0001;
+    }
+    input, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 9px;
+      font-size: 16px;
+    }
+    input { border: 1px solid #ccc; }
+    button {
+      border: 0;
+      background: #7045a5;
+      color: white;
+      cursor: pointer;
+    }
+    .location {
+      border: 1px solid #e3dbea;
+      padding: 14px;
+      border-radius: 12px;
+      margin: 12px 0;
+      overflow-wrap: anywhere;
+    }
+    #app { display: none; }
+    #status { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+<main>
+  <section id="login">
+    <h1>Private Viewer 🔒</h1>
+    <p>Sign in with your Supabase account to view locations shared with you.</p>
+    <form id="loginForm">
+      <input id="email" type="email" placeholder="Your email" required autocomplete="username">
+      <input id="password" type="password" placeholder="Your password" required autocomplete="current-password">
+      <button type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <section id="app">
+    <h1>Shared Locations 📍</h1>
+    <button id="refresh">Refresh locations</button>
+    <button id="logout">Sign out</button>
+    <div id="locations"></div>
+  </section>
+
+  <p id="status" role="status" aria-live="polite"></p>
+</main>
+
+<script>
+  const SUPABASE_URL = "https://lmnpatrfrsaebeeoaalc.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_AzFYx_GCj7tN4ZCZV2hFeA_upWytgRp";
+
+  const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const status = document.getElementById("status");
+  const login = document.getElementById("login");
+  const app = document.getElementById("app");
+  const locations = document.getElementById("locations");
+
+  async function loadLocations() {
+    status.textContent = "Loading shared locations…";
+    locations.replaceChildren();
+
+    const { data, error } = await client
+      .from("location_shares")
+      .select("id, latitude, longitude, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      status.textContent = "Couldn't load locations. Check your login and database policies.";
+      return;
+    }
+
+    if (!data.length) {
+      status.textContent = "No locations have been shared with you yet.";
+      return;
+    }
+
+    status.textContent = "";
+
+    data.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "location";
+
+      const heading = document.createElement("h3");
+      heading.textContent = "Shared location";
+
+      const time = document.createElement("p");
+      time.textContent = "Shared: " + new Date(item.created_at).toLocaleString();
+
+      const link = document.createElement("a");
+      link.href = "https://www.google.com/maps?q=" +
+        encodeURIComponent(item.latitude + "," + item.longitude);
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Open location in Google Maps";
+
+      card.append(heading, time, link);
+      locations.append(card);
+    });
+  }
+
+  document.getElementById("loginForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    status.textContent = "Signing in…";
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    const { error } = await client.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      status.textContent = "Sign-in failed. Check your email and password.";
+      return;
+    }
+
+    login.style.display = "none";
+    app.style.display = "block";
+    await loadLocations();
+  });
+
+  document.getElementById("refresh").addEventListener("click", loadLocations);
+
+  document.getElementById("logout").addEventListener("click", async () => {
+    await client.auth.signOut();
+    app.style.display = "none";
+    login.style.display = "block";
+    locations.replaceChildren();
+    status.textContent = "You have signed out.";
+  });
+</script>
+</body>
+</html>
