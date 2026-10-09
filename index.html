@@ -1,29 +1,170 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Surprise 🎁</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A Little Surprise 🎁</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #fce7f3, #e0e7ff);
+      color: #292338;
+    }
+
+    .card {
+      max-width: 440px;
+      width: 100%;
+      background: white;
+      padding: 30px 24px;
+      border-radius: 22px;
+      text-align: center;
+      box-shadow: 0 12px 40px #55446622;
+    }
+
+    h1 { color: #bd477d; }
+    p { line-height: 1.6; }
+
+    .notice {
+      background: #fff4f8;
+      padding: 15px;
+      border-radius: 12px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    label {
+      display: flex;
+      gap: 10px;
+      text-align: left;
+      align-items: flex-start;
+      margin: 20px 0;
+      line-height: 1.5;
+    }
+
+    input { margin-top: 5px; }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px;
+      background: #bd477d;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #status { overflow-wrap: anywhere; }
+  </style>
 </head>
 <body>
-  <h1>🎁 Surprise!</h1>
-  <p>Click the button below to share your location for the surprise.</p>
+  <main class="card">
+    <h1>A Little Surprise 🎁</h1>
+    <p>There's one optional step before you continue.</p>
 
-  <button onclick="getLocation()">Reveal Surprise</button>
+    <div class="notice">
+      <strong>Location sharing notice</strong>
+      <p>
+        If you agree, this page will request your device's precise
+        location and send its latitude and longitude to Karson,
+        who can view the shared location after signing in.
+        Your location will be stored in a database.
+        Sharing is optional.
+      </p>
+    </div>
 
-  <p id="result"></p>
+    <label>
+      <input type="checkbox" id="consent">
+      <span>I understand and agree to send my precise location to Karson.</span>
+    </label>
 
+    <button id="share" disabled>Agree & Share Location 📍</button>
+    <p id="status" role="status" aria-live="polite"></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    function getLocation() {
+    const SUPABASE_URL =
+      "https://lmnpatrfrsaebeeoaalc.supabase.co";
+
+    // Publishable key only. Never put a secret/service-role key here.
+    const SUPABASE_KEY =
+      "sb_publishable_AzFYx_GCj7tN4ZCZV2hFeA_upWytgRp";
+
+    const OWNER_ID =
+      "a49fa0b8-1d1e-47b5-a4aa-b4e4d9707997";
+
+    const client = supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+    const consent = document.getElementById("consent");
+    const button = document.getElementById("share");
+    const status = document.getElementById("status");
+
+    consent.addEventListener("change", () => {
+      button.disabled = !consent.checked;
+    });
+
+    button.addEventListener("click", () => {
+      if (!consent.checked) return;
+
+      if (!navigator.geolocation) {
+        status.textContent =
+          "Your browser does not support location sharing.";
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = "Requesting your permission…";
+
       navigator.geolocation.getCurrentPosition(
-        function(position) {
-          document.getElementById("result").innerHTML =
-            "Location shared! 🎉";
+        async (position) => {
+          try {
+            const { error } = await client
+              .from("location_shares")
+              .insert({
+                owner_id: OWNER_ID,
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                consent_given: true
+              });
+
+            if (error) throw error;
+
+            status.textContent =
+              "Your location was shared successfully. Thank you!";
+          } catch (error) {
+            console.error(error);
+            status.textContent =
+              "We couldn't save your location. Please try again later.";
+            button.disabled = false;
+          }
         },
-        function() {
-          document.getElementById("result").innerHTML =
-            "Location permission was not granted.";
-        }
+        (error) => {
+          status.textContent =
+            error.code === 1
+              ? "Location permission was denied. Nothing was shared."
+              : "We couldn't get your location. Please try again.";
+          button.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
       );
-    }
+    });
   </script>
 </body>
 </html>
