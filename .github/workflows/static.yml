@@ -1,49 +1,39 @@
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>🎁 Surprise!</title>
-</head>
-<body>
-  <h1>🎁 Surprise!</h1>
 
-  <p>
-    Want to share your location for the surprise?
-  </p>
+name: Deploy static site to GitHub Pages
 
-  <button onclick="shareLocation()">
-    Share My Location 📍
-  </button>
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
-  <p id="result"></p>
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
-  <script>
-    function shareLocation() {
-      if (!navigator.geolocation) {
-        document.getElementById("result").textContent =
-          "Location sharing isn't supported by this browser.";
-        return;
-      }
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
-      navigator.geolocation.getCurrentPosition(
-        function(position) {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-          const mapLink =
-            "https://www.google.com/maps?q=" + lat + "," + lon;
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
 
-          document.getElementById("result").innerHTML =
-            "Your location was shared with you. " +
-            '<a href="' + mapLink + '" target="_blank">View map</a>';
-        },
-        function() {
-          document.getElementById("result").textContent =
-            "Location permission was not granted.";
-        }
-      );
-    }
-  </script>
-</body>
-</html>
-```
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
